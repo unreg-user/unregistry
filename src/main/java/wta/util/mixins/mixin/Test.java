@@ -1,6 +1,5 @@
 package wta.util.mixins.mixin;
 
-import net.minecraft.item.EnderEyeItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
@@ -27,8 +26,8 @@ public class Test {
 		STICK=UnRegistry.register(
 			  Registries.ITEM,
 			  Identifier.ofVanilla("stick"),
-			  new EnderEyeItem(new Item.Settings()),
-			  RegType.REREG
+			  null,
+			  RegType.UNREG
 		);
 	}
 }

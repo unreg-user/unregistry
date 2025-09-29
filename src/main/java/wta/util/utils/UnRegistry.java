@@ -5,6 +5,7 @@ import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.entry.RegistryEntryInfo;
 import net.minecraft.util.Identifier;
+import wta.util.mixins.interfaces.MutableRegistryFI;
 
 public class UnRegistry {
 	public static <T> T register(Registry<? super T> registry, RegType type, String id, T entry) {
@@ -28,8 +29,9 @@ public class UnRegistry {
 	}
 
 
+	@SuppressWarnings("unchecked")
 	public static <V, T extends V> T register(Registry<V> registry, RegType type, RegistryKey<V> key, T entry) {
-		((MutableRegistry<V>)registry).add(key, entry, RegistryEntryInfo.DEFAULT);
+		((MutableRegistryFI<V>)registry).unregistry$add(key, type, entry, RegistryEntryInfo.DEFAULT);
 		return entry;
 	}
 }

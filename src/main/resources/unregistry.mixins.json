@@ -3,6 +3,7 @@
   "package": "wta.util.mixins.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "MutableRegistryFixer",
     "SimpleRegistryFixer",
     "Test"
   ],

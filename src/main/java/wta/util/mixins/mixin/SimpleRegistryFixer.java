@@ -3,7 +3,6 @@ package wta.util.mixins.mixin;
 import com.mojang.serialization.Lifecycle;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
-import net.minecraft.registry.MutableRegistry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.SimpleRegistry;
 import net.minecraft.registry.entry.RegistryEntry;
@@ -12,7 +11,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import org.spongepowered.asm.mixin.*;
 import wta.util.mixins.func.OtherFunc;
-import wta.util.mixins.interfaces.SimpleRegistryFI;
+import wta.util.mixins.interfaces.MutableRegistryFI;
 import wta.util.utils.RegType;
 
 import java.util.Map;
@@ -20,7 +19,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Mixin(SimpleRegistry.class)
-public abstract class SimpleRegistryFixer<T> implements MutableRegistry<T>, SimpleRegistryFI<T> {
+public abstract class SimpleRegistryFixer<T> implements net.minecraft.registry.MutableRegistry<T>, MutableRegistryFI<T> {
 
 	@Shadow
 	@Final
@@ -94,12 +93,11 @@ public abstract class SimpleRegistryFixer<T> implements MutableRegistry<T>, Simp
 	@Override
 	public RegistryEntry.Reference<T> unregistry$add(RegistryKey<T> key, RegType type, T value, RegistryEntryInfo info) {
 		Objects.requireNonNull(key);
-
-		boolean isOldRegistry=idToEntry.containsKey(key.getValue());
-		RegistryEntry.Reference<T> reference=findReference(key, value);
+		RegistryEntry.Reference<T> reference=null;
 
 		if (type.isRegister()){
 			Objects.requireNonNull(value);
+			reference=findReference(key, value);
 		}else{
 			OtherFunc.requireNull(value);
 		}
@@ -109,18 +107,25 @@ public abstract class SimpleRegistryFixer<T> implements MutableRegistry<T>, Simp
 			case REREG -> {
 				if (this.reregister(key, value, info, reference)){
 					yield reference;
-				}else{
-					throw Util.throwOrPause(new IllegalStateException("Key not found "+key));
 				}
+				throw Util.throwOrPause(new IllegalStateException("Key not found "+key));
 			}
 			case REG_ALWAYS -> {
 				if (this.reregister(key, value, info, reference)){
 					yield reference;
-				}else{
-					yield this.add(key, value, info);
 				}
+				yield this.add(key, value, info);
 			}
-			default -> null;
+			case UNREG -> {
+				if (this.unregister(key)){
+					yield null;
+				}
+				throw Util.throwOrPause(new IllegalStateException("Key not found "+key));
+			}
+			case UNREG_OR_NONE -> {
+				this.unregister(key);
+				yield null;
+			}
 		};
 	}
 
@@ -154,6 +159,21 @@ public abstract class SimpleRegistryFixer<T> implements MutableRegistry<T>, Simp
 		idToEntry.put(key.getValue(), reference);
 		valueToEntry.put(value, reference);
 		keyToEntryInfo.put(key, info);
+		return true;
+	}
+
+	@Unique
+	private boolean unregister(RegistryKey<T> key){
+		Optional<RegistryEntry.Reference<T>> oldValueO=this.getEntry(key);
+		if (oldValueO.isEmpty()) return false;
+		T oldValue = oldValueO.get().value();
+		int i = entryToRawId.getInt(oldValue);
+		rawIdToEntry.set(i, null);
+		entryToRawId.removeInt(oldValue);
+		valueToEntry.remove(oldValue);
+		keyToEntry.remove(key);
+		idToEntry.remove(key.getValue());
+		keyToEntryInfo.remove(key);
 		return true;
 	}
 }

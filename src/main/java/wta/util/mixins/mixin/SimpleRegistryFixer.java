@@ -2,24 +2,29 @@ package wta.util.mixins.mixin;
 
 import com.mojang.serialization.Lifecycle;
 import it.unimi.dsi.fastutil.objects.ObjectList;
+import it.unimi.dsi.fastutil.objects.Reference2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.SimpleRegistry;
+import net.minecraft.registry.*;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.entry.RegistryEntryInfo;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
+import net.minecraft.world.dimension.DimensionType;
+import net.minecraft.world.dimension.DimensionTypes;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.*;
 import wta.util.mixins.func.OtherFunc;
 import wta.util.mixins.interfaces.MutableRegistryFI;
 import wta.util.utils.RegType;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 @Mixin(SimpleRegistry.class)
-public abstract class SimpleRegistryFixer<T> implements net.minecraft.registry.MutableRegistry<T>, MutableRegistryFI<T> {
+public abstract class SimpleRegistryFixer<T> implements MutableRegistry<T>, MutableRegistryFI<T> {
 
 	@Shadow
 	@Final
@@ -86,7 +91,7 @@ public abstract class SimpleRegistryFixer<T> implements net.minecraft.registry.M
 		this.rawIdToEntry.add(reference);
 		this.entryToRawId.put(value, i);
 		this.keyToEntryInfo.put(key, info);
-		this.lifecycle = this.lifecycle.add(info.lifecycle());
+		//this.lifecycle = this.lifecycle.add(info.lifecycle());
 		return reference;
 	}
 
@@ -149,11 +154,12 @@ public abstract class SimpleRegistryFixer<T> implements net.minecraft.registry.M
 	private boolean reregister(RegistryKey<T> key, T value, RegistryEntryInfo info, RegistryEntry.Reference<T> reference){
 		Optional<RegistryEntry.Reference<T>> oldValueO=this.getEntry(key);
 		if (oldValueO.isEmpty()) return false;
-		T oldValue = oldValueO.get().value();
-		int i = entryToRawId.getInt(oldValue);
+		RegistryEntry.Reference<T> oldValueR = oldValueO.get();
+		T oldValue = oldValueR.value();
+		int i = rawIdToEntry.indexOf(oldValueR);
 		rawIdToEntry.set(i, reference);
-		entryToRawId.removeInt(oldValue);
-		entryToRawId.put(value, i);
+		//entryToRawId.removeInt(oldValue);
+		//entryToRawId.put(value, i);
 		valueToEntry.remove(oldValue);
 		keyToEntry.put(key, reference);
 		idToEntry.put(key.getValue(), reference);
@@ -166,14 +172,37 @@ public abstract class SimpleRegistryFixer<T> implements net.minecraft.registry.M
 	private boolean unregister(RegistryKey<T> key){
 		Optional<RegistryEntry.Reference<T>> oldValueO=this.getEntry(key);
 		if (oldValueO.isEmpty()) return false;
-		T oldValue = oldValueO.get().value();
-		int i = entryToRawId.getInt(oldValue);
+		RegistryEntry.Reference<T> oldValueR = oldValueO.get();
+		T oldValue = oldValueR.value();
+		int i = rawIdToEntry.indexOf(oldValueR);
 		rawIdToEntry.set(i, null);
-		entryToRawId.removeInt(oldValue);
+		//entryToRawId.removeInt(oldValue);
 		valueToEntry.remove(oldValue);
 		keyToEntry.remove(key);
 		idToEntry.remove(key.getValue());
 		keyToEntryInfo.remove(key);
 		return true;
 	}
+
+	@Override
+	public void unregistry$finalize() {
+		Reference2IntArrayMap<T> entryToRawId=new Reference2IntArrayMap<>();
+		rawIdToEntry.removeIf(Objects::isNull);
+		for (int i=0; i<rawIdToEntry.size(); i++) {
+			T objI=rawIdToEntry.get(i).value();
+			entryToRawId.put(objI, i);
+		}
+		this.entryToRawId=entryToRawId;
+	}
+
+	/*/@SuppressWarnings("unchecked")
+	@Overwrite
+	public int getRawId(@Nullable T value) {
+		Identifier id=((Registry<Registry<?>>) Registries.REGISTRIES).getId(this);
+		System.out.println(id+" "+entryToRawId.isEmpty());
+		if (entryToRawId.isEmpty()){
+			unregistry$finalize();
+		}
+		return entryToRawId.getInt(value);
+	}/*/
 }

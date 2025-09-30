@@ -17,6 +17,9 @@
 	"entrypoints": {
 		"main": [
 			"wta.util.Unregistry"
+		],
+		"server": [
+
 		]
 	},
 	"mixins": [

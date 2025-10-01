@@ -3,8 +3,10 @@
   "package": "wta.util.mixins.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "MutableRegistryFixer",
-    "SimpleRegistryFixer",
+    "FabricItemGroupFixer",
+    "ItemStackFixer",
+    "RegistriesFixer",
+    "SimpleRegistryMixin",
     "Test"
   ],
   "injectors": {

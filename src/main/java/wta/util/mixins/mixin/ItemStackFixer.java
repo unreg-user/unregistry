@@ -11,10 +11,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import wta.util.utils.UnregistryNull;
-import wta.util.utils.mixinInterfaces.ItemStackFI;
+import wta.util.utils.mixinInterfaces.RegistryContainerFI;
 
 @Mixin(ItemStack.class)
-public abstract class ItemStackFixer implements ComponentHolder, FabricItemStack, ItemStackFI {
+public abstract class ItemStackFixer implements ComponentHolder, FabricItemStack, RegistryContainerFI {
 	@Shadow @Final @Mutable private Item item;
 	@Shadow @Final @Mutable ComponentMapImpl components;
 	@Shadow private int count;
@@ -30,7 +30,7 @@ public abstract class ItemStackFixer implements ComponentHolder, FabricItemStack
 	}
 
 	@Override
-	public boolean unregistry$isUnregNull(){
+	public boolean unregistry$valueIsUnregNull(){
 		return isUnregNull;
 	}
 }

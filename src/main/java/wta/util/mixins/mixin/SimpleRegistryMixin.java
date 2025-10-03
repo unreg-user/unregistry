@@ -15,6 +15,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import wta.util.AllInit;
+import wta.util.mixins.interfaces.RedirectInitIfUnregNull;
 import wta.util.mixins.interfaces.SimpleRegistryFIInner;
 import wta.util.utils.mixinInterfaces.SimpleRegistryFI;
 import wta.util.utils.RegType;
@@ -39,8 +40,10 @@ public abstract class SimpleRegistryMixin<T> implements MutableRegistry<T>, Simp
 	@Shadow protected abstract void assertNotFrozen();
 
 
+	@Shadow private boolean frozen;
 	@Unique private T unregistryNullValue=null;
 	@Unique private final HashSet<Identifier> oldIds=new HashSet<>();
+	@Unique private boolean isCleared=false;
 
 	/**
 	 * @author UnregUser
@@ -156,12 +159,14 @@ public abstract class SimpleRegistryMixin<T> implements MutableRegistry<T>, Simp
 		return true;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public boolean unregistry$unregister(RegistryKey<T> key){
 		Optional<RegistryEntry.Reference<T>> oldValueO=this.getEntry(key);
 		if (oldValueO.isEmpty()) return false;
 		RegistryEntry.Reference<T> oldValueR = oldValueO.get();
 		T oldValue = oldValueR.value();
+		if (oldValue instanceof RedirectInitIfUnregNull<?> && this.getDefaultEntry().isPresent()) ((RedirectInitIfUnregNull<T>) oldValue).unregistry$init(oldValue);
 		int i = rawIdToEntry.indexOf(oldValueR);
 		rawIdToEntry.set(i, null);
 		valueToEntry.remove(oldValue);
@@ -199,17 +204,25 @@ public abstract class SimpleRegistryMixin<T> implements MutableRegistry<T>, Simp
 	}
 
 	@Override
+	public boolean unregistry$isFrozen() {
+		return frozen;
+	}
+
+	@Override
 	public void unregistry$finalize() {
-		Reference2IntArrayMap<T> entryToRawId=new Reference2IntArrayMap<>();
-		rawIdToEntry.removeIf(Objects::isNull);
-		for (int i=0; i<rawIdToEntry.size(); i++) {
-			T objI=rawIdToEntry.get(i).value();
-			entryToRawId.put(objI, i);
+		if (!isCleared){
+			Reference2IntArrayMap<T> entryToRawId=new Reference2IntArrayMap<>();
+			rawIdToEntry.removeIf(Objects::isNull);
+			for (int i=0; i<rawIdToEntry.size(); i++) {
+				T objI=rawIdToEntry.get(i).value();
+				entryToRawId.put(objI, i);
+			}
+			for (RegistryKey<T> keyI : keyToEntry.keySet()){
+				this.lifecycle = this.lifecycle.add(keyToEntryInfo.get(keyI).lifecycle());
+			}
+			this.entryToRawId=entryToRawId;
+			isCleared=true;
 		}
-		for (RegistryKey<T> keyI : keyToEntry.keySet()){
-			this.lifecycle = this.lifecycle.add(keyToEntryInfo.get(keyI).lifecycle());
-		}
-		this.entryToRawId=entryToRawId;
 	}
 
 	@Inject(

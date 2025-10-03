@@ -6,7 +6,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import wta.util.utils.mixinInterfaces.ItemStackFI;
+import wta.util.utils.mixinInterfaces.RegistryContainerFI;
 
 @Mixin(ItemGroup.EntriesImpl.class)
 public class FabricItemGroupFixer {
@@ -16,7 +16,7 @@ public class FabricItemGroupFixer {
 		  cancellable = true
 	)
 	private void unAdder(ItemStack stack, ItemGroup.StackVisibility visibility, CallbackInfo ci){
-		if (((ItemStackFI) (Object) stack).unregistry$isUnregNull()){
+		if (((RegistryContainerFI) (Object) stack).unregistry$valueIsUnregNull()){
 			ci.cancel();
 		}
 	}

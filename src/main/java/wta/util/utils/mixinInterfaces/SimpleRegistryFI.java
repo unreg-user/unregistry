@@ -11,6 +11,7 @@ public interface SimpleRegistryFI<T> {
 	void unregistry$registerUnregistryNull(T value);
 	T unregistry$getUnregistryNull();
 	void unregistry$removeIntrusiveValueToEntry(T value);
+	boolean unregistry$isFrozen();
 
 	@SuppressWarnings("unchecked")
 	static <T> void removeIntrusive(Registry<T> registry, T value){

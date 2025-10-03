@@ -18,8 +18,8 @@
 		"main": [
 			"wta.util.Unregistry"
 		],
-		"server": [
-
+		"mm:early_risers": [
+			"wta.util.asm.ClassTickersInit"
 		]
 	},
 	"mixins": [
